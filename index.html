@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocabForge — Vocabulary Builder</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ─── Header / Nav ─── -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">VocabForge</span>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-view="learn">Learn</button>
+        <button class="nav-tab" data-view="quiz">Quiz</button>
+        <button class="nav-tab" data-view="ledger">Ledger</button>
+        <button class="nav-tab" data-view="lookup">Lookup</button>
+        <button class="nav-tab" data-view="settings">Settings</button>
+      </nav>
+      <div class="stats-bar">
+        <span class="stat"><span id="stat-known">0</span> known</span>
+        <span class="stat"><span id="stat-streak">0</span> 🔥</span>
+      </div>
+    </header>
+
+    <!-- ─── Main ─── -->
+    <main class="app-main">
+
+      <!-- ════ LEARN VIEW ════ -->
+      <section id="view-learn" class="view active">
+        <div class="word-card">
+
+          <div class="word-header">
+            <div class="word-title-group">
+              <h1 class="word-title" id="word-display">—</h1>
+              <span class="word-pronunciation" id="word-pronunciation"></span>
+            </div>
+            <div class="word-meta">
+              <span class="word-pos" id="word-pos"></span>
+              <button class="btn-icon" id="btn-mark-known" title="Mark as Known">✓</button>
+            </div>
+          </div>
+
+          <div class="word-definition">
+            <p id="definition-text"></p>
+          </div>
+
+          <!-- Memory Hook -->
+          <div class="word-section mnemonic-section">
+            <div class="section-label">Memory Hook</div>
+            <div class="mnemonic-box">
+              <p id="mnemonic-text"></p>
+            </div>
+          </div>
+
+          <!-- Etymology (collapsible) -->
+          <div class="word-section">
+            <div class="section-label collapsible-toggle" data-target="etymology-content">
+              Etymology &amp; Roots <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="collapsible-content" id="etymology-content">
+              <p id="etymology-text"></p>
+            </div>
+          </div>
+
+          <!-- Word Forms -->
+          <div class="word-section">
+            <div class="section-label">Word Forms</div>
+            <div class="forms-grid" id="forms-grid"></div>
+          </div>
+
+          <!-- Examples -->
+          <div class="word-section">
+            <div class="section-label">In Use</div>
+            <div class="examples-list" id="examples-list"></div>
+          </div>
+
+          <!-- Navigation -->
+          <div class="word-nav">
+            <button class="btn btn-secondary" id="btn-prev">← Previous</button>
+            <div class="word-counter">
+              <span id="word-index">1</span> of <span id="word-total">35</span>
+            </div>
+            <button class="btn btn-primary" id="btn-next">Next →</button>
+          </div>
+
+        </div>
+        <!-- Progress bar appended by JS -->
+      </section>
+
+      <!-- ════ QUIZ VIEW ════ -->
+      <section id="view-quiz" class="view">
+
+        <!-- Start Screen -->
+        <div id="quiz-start" class="quiz-start">
+          <h2>Quiz Mode</h2>
+          <div class="quiz-options">
+
+            <div class="option-group">
+              <label>Quiz Type</label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" name="quiz-type" value="random" checked>
+                  <span>🎲 Random Mix</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-type" value="word-to-def">
+                  <span>📖 Word → Definition</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-type" value="def-to-word">
+                  <span>💡 Definition → Word</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-type" value="fill-blank">
+                  <span>✏️ Fill in the Blank</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-type" value="story-time">
+                  <span>✨ Story Time — read the mnemonic, name the word</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <label>Word Pool</label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" name="quiz-pool" value="all" checked>
+                  <span>All Words (35 pre-loaded + your lookups)</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-pool" value="seen">
+                  <span>Words I've Already Seen</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="quiz-pool" value="learning">
+                  <span>Still Learning (seen but not marked Known)</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+          <button class="btn btn-primary btn-large" id="btn-start-quiz">Start Quiz →</button>
+        </div>
+
+        <!-- Active Quiz Screen -->
+        <div id="quiz-active" class="quiz-active hidden">
+
+          <div class="quiz-header">
+            <div class="quiz-score">Score: <span id="quiz-score">0</span></div>
+            <div class="quiz-timer-wrap">
+              <svg class="timer-ring" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <circle class="timer-ring-bg" cx="60" cy="60" r="54"/>
+                <circle class="timer-ring-fill" id="timer-ring-fill" cx="60" cy="60" r="54"/>
+              </svg>
+              <span class="timer-text" id="timer-text">30</span>
+            </div>
+            <div class="quiz-streak">🔥 <span id="quiz-streak">0</span></div>
+          </div>
+
+          <div class="quiz-type-badge" id="quiz-type-badge">Word → Definition</div>
+
+          <!-- Question -->
+          <div class="quiz-question" id="quiz-question"></div>
+
+          <!-- Progressive Hints -->
+          <div class="quiz-hints" id="quiz-hints">
+            <div class="hint hidden" id="hint-1">
+              <span class="hint-label">Hint 1 — First Letter:</span>
+              <span id="hint-1-text"></span>
+            </div>
+            <div class="hint hidden" id="hint-2">
+              <span class="hint-label">Hint 2 — Etymology:</span>
+              <span id="hint-2-text"></span>
+            </div>
+            <div class="hint hidden" id="hint-3">
+              <span class="hint-label">Hint 3 — Memory Hook:</span>
+              <span id="hint-3-text"></span>
+            </div>
+          </div>
+
+          <!-- Multiple Choice -->
+          <div class="quiz-answers" id="quiz-answers"></div>
+
+          <!-- Text Input (Story Time) -->
+          <div class="quiz-input-wrap hidden" id="quiz-input-wrap">
+            <input type="text" id="quiz-input" class="quiz-input" placeholder="Type the word…" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary" id="btn-submit-answer">Submit</button>
+          </div>
+
+          <!-- Result Panel -->
+          <div class="quiz-result hidden" id="quiz-result">
+            <div class="result-icon" id="result-icon"></div>
+            <div class="result-word" id="result-word"></div>
+            <div class="result-definition" id="result-definition"></div>
+            <div class="result-mnemonic" id="result-mnemonic"></div>
+            <button class="btn btn-primary" id="btn-next-question">Next Question →</button>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ════ LEDGER VIEW ════ -->
+      <section id="view-ledger" class="view">
+
+        <div class="ledger-header">
+          <h2>Word Ledger</h2>
+          <div class="ledger-controls">
+            <input type="text" id="ledger-search" class="search-input" placeholder="Search words…">
+            <select id="ledger-filter" class="filter-select">
+              <option value="all">All</option>
+              <option value="known">Known</option>
+              <option value="learning">Learning</option>
+              <option value="unseen">Not Seen</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ledger-stats">
+          <div class="ledger-stat"><span id="ledger-total">0</span> total</div>
+          <div class="ledger-stat"><span id="ledger-known">0</span> known</div>
+          <div class="ledger-stat"><span id="ledger-learning">0</span> learning</div>
+        </div>
+
+        <div class="ledger-grid" id="ledger-grid"></div>
+
+      </section>
+
+      <!-- ════ LOOKUP VIEW ════ -->
+      <section id="view-lookup" class="view">
+        <div class="lookup-container">
+          <h2>Look Up Any Word</h2>
+          <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:24px; line-height:1.6;">
+            Fetches definition, pronunciation, and examples from a free dictionary — no account or API key needed.
+            Then you paste in a mnemonic (write your own, or grab one from Claude at claude.ai) before saving.
+          </p>
+
+          <div class="lookup-search">
+            <input type="text" id="lookup-input" class="search-input large" placeholder="Enter any English word…" autocomplete="off">
+            <button class="btn btn-primary" id="btn-lookup">Look Up</button>
+          </div>
+
+          <div class="lookup-result hidden" id="lookup-result"></div>
+        </div>
+      </section>
+
+      <!-- ════ SETTINGS VIEW ════ -->
+      <section id="view-settings" class="view">
+        <div class="settings-container">
+          <h2>Settings</h2>
+
+          <div class="settings-group">
+            <h3>⏱ Quiz Timer</h3>
+            <p class="settings-description">How long you get to answer each question. Hints appear at 67%, 50%, and 27% of time remaining.</p>
+            <div class="slider-wrap">
+              <input type="range" id="settings-timer" min="15" max="60" value="30" step="5">
+              <span id="settings-timer-display">30 seconds</span>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>⌨️ Keyboard Shortcuts</h3>
+            <div style="display:grid; grid-template-columns: auto 1fr; gap:8px 16px; font-size:0.85rem; color:var(--text-secondary);">
+              <code style="color:var(--accent-gold); font-family:var(--font-mono);">→ / n</code><span>Next word</span>
+              <code style="color:var(--accent-gold); font-family:var(--font-mono);">← / p</code><span>Previous word</span>
+              <code style="color:var(--accent-gold); font-family:var(--font-mono);">k</code><span>Toggle Known status</span>
+              <code style="color:var(--accent-gold); font-family:var(--font-mono);">Enter</code><span>Submit quiz answer (text input)</span>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>📖 About VocabForge</h3>
+            <p class="settings-description" style="margin:0;">
+              35 pre-loaded GRE-level words with real etymologies and vivid mnemonics.
+              4 quiz types including <em>Story Time</em> — where the mnemonic hook is shown with the word masked,
+              and you must recall it. Progress saves locally in your browser.
+              Add any word via the Lookup tab with an Anthropic API key.
+            </p>
+          </div>
+
+          <div class="settings-group danger-zone">
+            <h3>⚠️ Reset Progress</h3>
+            <p class="settings-description">Clears all seen words, known words, quiz scores, and custom lookups. Cannot be undone.</p>
+            <button class="btn btn-danger" id="btn-reset">Reset All Progress</button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/data.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+</body>
+</html>
