@@ -724,7 +724,18 @@ async function fetchWiktionaryEtymology(word) {
       action: 'query', titles: word, prop: 'revisions',
       rvprop: 'content', rvslots: 'main', format: 'json', origin: '*'
     });
-    const resp = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    let resp;
+    try {
+      resp = await fetch(url, {
+        mode: 'cors',
+        credentials: 'omit',
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!resp.ok) return '';
     const data = await resp.json();
     const page = Object.values(data.query?.pages || {})[0];
