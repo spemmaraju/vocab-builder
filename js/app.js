@@ -721,7 +721,7 @@ async function lookupWord(word) {
 async function fetchWiktionaryEtymology(word) {
   try {
     const url = 'https://en.wiktionary.org/w/api.php?' + new URLSearchParams({
-      action: 'query', titles: word, prop: 'revisions',
+      action: 'query', titles: word.toLowerCase(), prop: 'revisions',
       rvprop: 'content', rvslots: 'main', format: 'json', origin: '*'
     });
     const controller = new AbortController();
