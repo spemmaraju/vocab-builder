@@ -77,6 +77,125 @@ function loadState() {
   } catch (e) { console.warn('Could not load state:', e); }
 }
 
+// ─── SYNC ────────────────────────────────────────────────────────────────────
+const SYNC_TOKEN_KEY = 'vf_sync_token';
+const SYNC_GIST_KEY  = 'vf_sync_gist_id';
+const GIST_FILENAME  = 'vocabforge-sync.json';
+
+function getSyncToken()  { return localStorage.getItem(SYNC_TOKEN_KEY) || ''; }
+function getSyncGistId() { return localStorage.getItem(SYNC_GIST_KEY)  || ''; }
+
+function setSyncStatus(msg, color) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--text-muted)';
+}
+
+async function syncPush() {
+  const token = getSyncToken();
+  if (!token) return;
+  const payload = {
+    version: 1,
+    lastUpdated: new Date().toISOString(),
+    seenWords:    [...state.seenWords],
+    knownWords:   [...state.knownWords],
+    customWords:  state.customWords,
+    totalXP:      state.totalXP,
+    globalStreak: state.globalStreak,
+    quizScores:   state.quizScores
+  };
+  const gistBody = {
+    description: 'VocabForge sync data',
+    public: false,
+    files: { [GIST_FILENAME]: { content: JSON.stringify(payload, null, 2) } }
+  };
+  try {
+    setSyncStatus('Syncing…', 'var(--text-muted)');
+    const gistId = getSyncGistId();
+    const resp = await fetch(
+      gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists',
+      {
+        method:  gistId ? 'PATCH' : 'POST',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify(gistBody)
+      }
+    );
+    if (!resp.ok) { setSyncStatus('⚠ Sync failed — check your token', '#e25555'); return; }
+    if (!gistId) {
+      const data = await resp.json();
+      localStorage.setItem(SYNC_GIST_KEY, data.id);
+    }
+    setSyncStatus('✓ Synced ' + new Date().toLocaleTimeString(), 'var(--accent-teal)');
+  } catch { setSyncStatus('⚠ Sync error — check network', '#e25555'); }
+}
+
+async function syncPull() {
+  const token  = getSyncToken();
+  const gistId = getSyncGistId();
+  if (!token || !gistId) return false;
+  try {
+    setSyncStatus('Fetching…', 'var(--text-muted)');
+    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (!resp.ok) { setSyncStatus('⚠ Could not reach sync Gist', '#e25555'); return false; }
+    const gist    = await resp.json();
+    const content = gist.files?.[GIST_FILENAME]?.content;
+    if (!content) return false;
+    const remote  = JSON.parse(content);
+    // Merge: union of sets, max of numbers
+    (remote.seenWords  || []).forEach(w => state.seenWords.add(w));
+    (remote.knownWords || []).forEach(w => state.knownWords.add(w));
+    if ((remote.totalXP      || 0) > state.totalXP)      state.totalXP      = remote.totalXP;
+    if ((remote.globalStreak || 0) > state.globalStreak) state.globalStreak = remote.globalStreak;
+    // Merge custom words by id
+    if (remote.customWords?.length) {
+      const localIds = new Set(state.customWords.map(w => w.id));
+      remote.customWords.forEach(w => { if (!localIds.has(w.id)) state.customWords.push(w); });
+    }
+    // Merge quiz scores (take max of correct/incorrect per word)
+    Object.entries(remote.quizScores || {}).forEach(([id, sc]) => {
+      if (!state.quizScores[id]) state.quizScores[id] = { correct: 0, incorrect: 0 };
+      state.quizScores[id].correct   = Math.max(state.quizScores[id].correct,   sc.correct   || 0);
+      state.quizScores[id].incorrect = Math.max(state.quizScores[id].incorrect, sc.incorrect || 0);
+    });
+    saveState();
+    setSyncStatus('✓ Synced ' + new Date().toLocaleTimeString(), 'var(--accent-teal)');
+    return true;
+  } catch { setSyncStatus('⚠ Sync error — check network', '#e25555'); return false; }
+}
+
+function initSyncView() {
+  const tokenInput = document.getElementById('sync-token');
+  const saveBtn    = document.getElementById('btn-sync-save');
+  const syncNowBtn = document.getElementById('btn-sync-now');
+  if (!tokenInput || !saveBtn || !syncNowBtn) return;
+
+  if (getSyncToken()) setSyncStatus('Token saved. Press Sync Now to sync.', 'var(--text-muted)');
+  syncNowBtn.disabled = !getSyncToken();
+
+  saveBtn.addEventListener('click', () => {
+    const val = tokenInput.value.trim();
+    if (val) {
+      localStorage.setItem(SYNC_TOKEN_KEY, val);
+      tokenInput.value = '';
+      tokenInput.placeholder = '••••••••••••••••••••';
+    }
+    syncNowBtn.disabled = !getSyncToken();
+    syncPush();
+  });
+
+  syncNowBtn.addEventListener('click', async () => {
+    syncNowBtn.disabled = true;
+    await syncPull();
+    await syncPush();
+    updateHeaderStats();
+    renderLearnView();
+    syncNowBtn.disabled = false;
+  });
+}
+
 // ─── Word Pool ───
 function getAllWords() {
   return [...WORD_DATABASE, ...state.customWords];
@@ -234,6 +353,7 @@ function initLearnView() {
       showToast(`"${word.word}" marked as known! ✓`, 'success');
     }
     saveState();
+    syncPush();
     updateHeaderStats();
     renderLearnView();
   });
@@ -513,6 +633,7 @@ function showQuizResult(word, isCorrect, points) {
 function endQuiz() {
   state.quiz.active = false;
   showToast(`Quiz complete! Final score: ${state.quiz.score} XP`, 'success');
+  syncPush();
   renderQuizStart();
   switchView('quiz');
 }
@@ -1043,8 +1164,16 @@ function init() {
   initLedgerView();
   initLookupView();
   initSettingsView();
+  initSyncView();
   renderLearnView();
   updateHeaderStats();
+
+  // On startup, pull from Gist and refresh views if new data arrived
+  if (getSyncToken() && getSyncGistId()) {
+    syncPull().then(pulled => {
+      if (pulled) { updateHeaderStats(); renderLearnView(); }
+    });
+  }
 
   // Add progress bar to word card
   const wordNav = document.querySelector('.word-nav');

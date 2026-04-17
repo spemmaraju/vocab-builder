@@ -6,7 +6,7 @@
   <title>VocabForge — Vocabulary Builder</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <div id="app">
@@ -278,12 +278,33 @@
           </div>
 
           <div class="settings-group">
+            <h3>☁️ Cross-Device Sync</h3>
+            <p class="settings-description">
+              Sync your known words, XP, and lookups across iPhone, iPad, and Mac via a private GitHub Gist.
+              Requires a GitHub token with <strong>only</strong> the <code style="color:var(--accent-gold);">gist</code> scope — it cannot access your repos or anything else.
+            </p>
+            <div style="margin-bottom:10px;">
+              <label style="display:block; margin-bottom:6px; font-size:0.85rem; color:var(--text-secondary);">GitHub Token</label>
+              <div style="display:flex; gap:8px;">
+                <input type="password" id="sync-token" class="search-input" placeholder="ghp_… (paste your token here)" autocomplete="off" style="flex:1; font-size:0.9rem;">
+                <button class="btn btn-primary" id="btn-sync-save">Save</button>
+              </div>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+                Create one at
+                <a href="https://github.com/settings/tokens/new?scopes=gist&description=VocabForge+Sync" target="_blank" rel="noopener" style="color:var(--accent-teal);">github.com/settings/tokens</a>
+                — tick only the <strong>gist</strong> checkbox. Your token is stored only in this browser's localStorage and is only ever sent to api.github.com.
+              </p>
+            </div>
+            <div id="sync-status" style="font-size:0.85rem; margin-bottom:12px; min-height:1.2em;"></div>
+            <button class="btn btn-secondary" id="btn-sync-now" disabled>↕ Sync Now</button>
+          </div>
+
+          <div class="settings-group">
             <h3>📖 About VocabForge</h3>
             <p class="settings-description" style="margin:0;">
-              35 pre-loaded GRE-level words with real etymologies and vivid mnemonics.
+              42 pre-loaded GRE-level words with real etymologies and vivid mnemonics.
               4 quiz types including <em>Story Time</em> — where the mnemonic hook is shown with the word masked,
-              and you must recall it. Progress saves locally in your browser.
-              Add any word via the Lookup tab with an Anthropic API key.
+              and you must recall it. Progress saves locally in your browser and optionally syncs across devices via GitHub Gist.
             </p>
           </div>
 
@@ -299,7 +320,7 @@
     </main>
   </div>
 
-  <script src="js/data.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/data.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>
