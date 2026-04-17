@@ -233,6 +233,7 @@ function initSyncView() {
     await syncPush();
     updateHeaderStats();
     renderLearnView();
+    renderLedger();
     syncNowBtn.disabled = false;
   });
 }
@@ -1085,6 +1086,7 @@ function addCustomWord(wordData) {
   if (idx !== -1) state.customWords[idx] = wordData;
   else state.customWords.push(wordData);
   saveState();
+  syncPush();
   const newIdx = getAllWords().findIndex(w => w.id === wordData.id);
   if (newIdx !== -1) { state.currentWordIndex = newIdx; saveState(); }
   showToast(`"${wordData.word}" added to your collection!`, 'success');
@@ -1212,7 +1214,7 @@ function init() {
   // On startup, pull from Gist and refresh views if new data arrived
   if (getSyncToken() && getSyncGistId()) {
     syncPull().then(pulled => {
-      if (pulled) { updateHeaderStats(); renderLearnView(); }
+      if (pulled) { updateHeaderStats(); renderLearnView(); renderLedger(); }
     });
   }
 
