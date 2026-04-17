@@ -824,7 +824,7 @@ function renderLookupForm(word, data, wiktEtym = '') {
         Etymology &amp; Roots
         ${autoEtym
           ? `<span style="color:var(--accent-teal); font-weight:500; text-transform:none; letter-spacing:0; font-size:0.75rem; margin-left:6px;">✓ auto-filled via ${etymSource}</span>`
-          : `<span style="color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.75rem; margin-left:6px;">(not found — add manually if you like)</span>`}
+          : `<span style="color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0; font-size:0.75rem; margin-left:6px;">(not found — <a href="https://en.wiktionary.org/wiki/${encodeURIComponent(word)}#English" target="_blank" rel="noopener" style="color:var(--accent-teal); text-decoration:none;">look up on Wiktionary ↗</a> then paste below)</span>`}
       </div>
       <textarea id="lookup-etymology" class="settings-input" rows="3"
         placeholder="Root words, Latin/Greek origins…"
