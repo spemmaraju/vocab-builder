@@ -1226,6 +1226,19 @@ function init() {
     bar.innerHTML = '<div class="word-progress-fill"></div>';
     wordNav.after(bar);
   }
+
+  // Handle ?lookup=word URL parameter — triggered by iOS/macOS Shortcut
+  const urlParams = new URLSearchParams(window.location.search);
+  const lookupParam = urlParams.get('lookup');
+  if (lookupParam && lookupParam.trim()) {
+    const word = lookupParam.trim();
+    switchView('lookup');
+    document.getElementById('lookup-input').value = word;
+    // Small delay to let the view render before triggering lookup
+    setTimeout(() => lookupWord(word), 100);
+    // Clean up URL so reloading doesn't re-trigger the lookup
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
