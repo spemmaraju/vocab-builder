@@ -92,6 +92,36 @@ function setSyncStatus(msg, color) {
   el.style.color = color || 'var(--text-muted)';
 }
 
+// Find an existing VocabForge Gist or create a new one — handles multi-device setup automatically
+async function resolveGistId(token, gistBody) {
+  let gistId = getSyncGistId();
+  if (gistId) return gistId;
+  // Search existing gists for one with our filename
+  try {
+    const listResp = await fetch('https://api.github.com/gists?per_page=100', {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (listResp.ok) {
+      const gists = await listResp.json();
+      const found = gists.find(g => g.files?.[GIST_FILENAME]);
+      if (found) {
+        localStorage.setItem(SYNC_GIST_KEY, found.id);
+        return found.id;
+      }
+    }
+  } catch {}
+  // No existing gist — create one
+  const createResp = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(gistBody)
+  });
+  if (!createResp.ok) return null;
+  const data = await createResp.json();
+  localStorage.setItem(SYNC_GIST_KEY, data.id);
+  return data.id;
+}
+
 async function syncPush() {
   const token = getSyncToken();
   if (!token) return;
@@ -112,28 +142,39 @@ async function syncPush() {
   };
   try {
     setSyncStatus('Syncing…', 'var(--text-muted)');
-    const gistId = getSyncGistId();
-    const resp = await fetch(
-      gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists',
-      {
-        method:  gistId ? 'PATCH' : 'POST',
+    const gistId = await resolveGistId(token, gistBody);
+    if (!gistId) { setSyncStatus('⚠ Sync failed — check your token', '#e25555'); return; }
+    // If resolveGistId just created it (POST), it already has the right content — just update status
+    if (gistId === getSyncGistId() && payload) {
+      const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
         headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-        body:    JSON.stringify(gistBody)
-      }
-    );
-    if (!resp.ok) { setSyncStatus('⚠ Sync failed — check your token', '#e25555'); return; }
-    if (!gistId) {
-      const data = await resp.json();
-      localStorage.setItem(SYNC_GIST_KEY, data.id);
+        body: JSON.stringify(gistBody)
+      });
+      if (!resp.ok) { setSyncStatus('⚠ Sync failed — check your token', '#e25555'); return; }
     }
     setSyncStatus('✓ Synced ' + new Date().toLocaleTimeString(), 'var(--accent-teal)');
   } catch { setSyncStatus('⚠ Sync error — check network', '#e25555'); }
 }
 
 async function syncPull() {
-  const token  = getSyncToken();
-  const gistId = getSyncGistId();
-  if (!token || !gistId) return false;
+  const token = getSyncToken();
+  if (!token) return false;
+  // Discover gist id if not set yet
+  let gistId = getSyncGistId();
+  if (!gistId) {
+    try {
+      const listResp = await fetch('https://api.github.com/gists?per_page=100', {
+        headers: { Authorization: `token ${token}` }
+      });
+      if (listResp.ok) {
+        const gists = await listResp.json();
+        const found = gists.find(g => g.files?.[GIST_FILENAME]);
+        if (found) { localStorage.setItem(SYNC_GIST_KEY, found.id); gistId = found.id; }
+      }
+    } catch {}
+  }
+  if (!gistId) return false;
   try {
     setSyncStatus('Fetching…', 'var(--text-muted)');
     const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
